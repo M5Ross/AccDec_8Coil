@@ -6,7 +6,7 @@
 
       /*********************************************
        *                                           *
-       *  modified by M.Ross => AccDec8Coil        *
+       *  modified by M5Ross => AccDec8Coil        *
        *                                           *
        *********************************************/
 
@@ -50,7 +50,7 @@
 //#include <SoftwareServo.h> 
 
 #define HW_VERSION 10
-#define SW_VERSION 21
+#define SW_VERSION 22
 
 #define DECODER_ID 2
 
@@ -83,6 +83,7 @@ uint8_t CV_DECODER_MASTER_RESET =   120;  // THIS IS THE CV ADDRESS OF THE FULL 
 struct QUEUE
 {
   int16_t inuse;
+  int16_t start_routine;
   int16_t current_position;
   int16_t increment;
   int16_t stop_value;
@@ -111,20 +112,28 @@ CVPair FactoryDefaultCVs [] =
   {CV_TIME_DISACTIVE_OUTPUT, TIME_DISACTIVE_OUTPUT}, // tempo disattivazione output dopo un comando per evitare sovraccarico
   {CONF_CV, CONF_CV_DEFAULT},
   {31, 15},  // durata impulso 1
+  {33, 1},   // preposizionamento all'accensione
   {34, 0},   // posizione all'accensione
   {36, 15},  // durata impulso 2
+  {38, 1},   // preposizionamento all'accensione
   {39, 0},   // posizione all'accensione
   {41, 15},  // durata impulso 3
+  {43, 1},   // preposizionamento all'accensione
   {44, 0},   // posizione all'accensione
   {46, 15},  // durata impulso 4
+  {48, 1},   // preposizionamento all'accensione
   {49, 0},   // posizione all'accensione
   {51, 15},  // durata impulso 5
+  {53, 1},   // preposizionamento all'accensione
   {54, 0},   // posizione all'accensione
   {56, 15},  // durata impulso 6
+  {58, 1},   // preposizionamento all'accensione
   {59, 0},   // posizione all'accensione
   {61, 15},  // durata impulso 7
+  {63, 1},   // preposizionamento all'accensione
   {64, 0},   // posizione all'accensione
   {66, 15},  // durata impulso 8
+  {68, 1},   // preposizionamento all'accensione
   {69, 0},   // posizione all'accensione
 
   {CV_SINGLE_INV, 0},
@@ -152,6 +161,7 @@ CVPair FactoryDefaultCVs [] =
   {CV_MULTI_ADDRESS+13, 0},
   {CV_MULTI_ADDRESS+14, Accessory_Address+7},
   {CV_MULTI_ADDRESS+15, 0},
+
   /*
   {50, 4}, //F4 Config 0=On/Off,1=Blink,2=Servo,3=DBL LED Blink,4=Pulsed,5=fade
   {51, 25},    // Rate  Blink=Eate,PWM=Rate,Servo=Rate
@@ -310,16 +320,18 @@ void setup()   //******************************************************
           ftn_queue[i].current_position = 1;
           Dcc.setCV( 34+(i*5), 1);
        }
-       
-       if(ftn_queue[i].current_position) {
-         digitalWrite(FApins[i], 1);
-         digitalWrite(FBpins[i], 0);
-         //digitalWrite(Rpins[i], 1);
-       }
-       else {
-         digitalWrite(FApins[i], 0);
-         digitalWrite(FBpins[i], 1);
-         //digitalWrite(Rpins[i], 0);
+
+       if (ftn_queue[i].start_routine > 0) {
+         if(ftn_queue[i].current_position == 1) {
+           digitalWrite(FApins[i], 1);
+           digitalWrite(FBpins[i], 0);
+           //digitalWrite(Rpins[i], 1);
+         }
+         else {
+           digitalWrite(FApins[i], 0);
+           digitalWrite(FBpins[i], 1);
+           //digitalWrite(Rpins[i], 0);
+         }
        }
        if(CV28.GetPulse()) {
          delay(ftn_queue[i].increment);
@@ -386,6 +398,7 @@ void CVrefresh(uint8_t out) {
   }
   ftn_queue[out].single_invert = int (Dcc.getCV( CV_SINGLE_INV+out));
   ftn_queue[out].increment = 10 * int (char (Dcc.getCV( 31+(out*5))));
+  ftn_queue[out].start_routine = int (Dcc.getCV( 33+(out*5)));
   ftn_queue[out].current_position = int (Dcc.getCV( 34+(out*5)));
 }
 
